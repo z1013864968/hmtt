@@ -1,37 +1,53 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
+import store from '@/store'
 
-import Layout from '@/views/layout'
-import Home from '@/views/home'
-import Question from '@/views/question'
-import Search from '@/views/search'
-import Video from '@/views/video'
-import User from '@/views/user'
+const Layout = () => import('@/views/layout')
+const Home = () => import('@/views/home/index')
+const Question = () => import('@/views/question/index')
+const Video = () => import('@/views/video/index')
+const User = () => import('@/views/user/user')
+// const UserProfile = () => import('@/views/user/Profile')
+// const UserChat = () => import('@/views/user/Chat')
+const Login = () => import('@/views/login/index')
+const Search = () => import('@/views/search/index')
+// const SearchResult = () => import('@/views/search/Result')
+// const Article = () => import('@/views/home/Article')
 
 Vue.use(VueRouter)
 
 const routes = [
-  { path: '/',
-    name: 'layout-index',
+  // 公用布局相关的
+  {
+    path: '/',
     component: Layout,
     children: [
-      // 主页
-      { path: '/', name: 'home-index', component: Home },
-      // 问答
-      { path: '/question', name: 'question-index', component: Question },
-      // 视频
-      { path: '/video', name: 'video-index', component: Video },
-      // 个人设置
-      { path: '/user', name: 'user-index', component: User }
-
+      { path: '/', name: 'home', component: Home, meta: { keepAlive: true } },
+      { path: '/question', name: 'question', component: Question },
+      { path: '/video', name: 'video', component: Video },
+      { path: '/user', name: 'user', component: User }
     ]
   },
-  // 搜索
-  { path: '/search', name: 'search-index', component: Search }
+  // { path: '/user/profile', name: 'user-profile', component: UserProfile },
+  // { path: '/user/chat', name: 'user-chat', component: UserChat },
+  { path: '/login', name: 'login', component: Login },
+  { path: '/search', name: 'search', component: Search }
+  // { path: '/search/result', name: 'search-result', component: SearchResult }
+  // { path: '/article', name: 'article', component: Article, meta: { keepAlive: true } }
 ]
 
 const router = new VueRouter({
   routes
+})
+
+// 访问权限控制（个人中心 /user，编辑资料 /user/profile，小智同学 /user/chat）
+router.beforeEach((to, from, next) => {
+  // 如果当前没有登录 且  访问的路径是以/user开头  拦截登录页面（回跳）
+  const user = store.state.user
+  if (!user.token && to.path.startsWith('/user')) {
+    return next({ path: '/login', query: { redirectUrl: to.path } })
+  }
+  next()
 })
 
 export default router

@@ -1,5 +1,12 @@
 <template>
-  <div>搜索</div>
+  <div>
+    <div class="header">
+      <van-nav-bar title="黑马头条"
+      left-arrow
+       @click-left="$router.back()"
+      />
+    </div>
+  </div>
 </template>
 
 <script>
@@ -9,5 +16,4 @@ export default {
 </script>
 
 <style>
-
 </style>
