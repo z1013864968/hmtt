@@ -10,7 +10,7 @@
       <van-grid class="van-hairline--left">
         <van-grid-item v-for="(item,i) in myChannels" :key="item.id">
           <span class="f12" @click="enterChannel(i)" :class="{red:activeIndex===i}">{{item.name}}</span>
-          <van-icon class="btn" name="cross" v-if="editing&&i!==0"></van-icon>
+          <van-icon @click="delChannel(i,item.id)" class="btn" name="cross" v-if="editing&&i!==0"></van-icon>
         </van-grid-item>
       </van-grid>
     </div>
@@ -19,7 +19,7 @@
       <van-grid class="van-hairline--left">
         <van-grid-item v-for="item in optionalChannels" :key="item.id">
           <span class="f12">{{item.name}}</span>
-          <van-icon class="btn" name="plus"></van-icon>
+          <van-icon @click="addChannel(item)" class="btn" name="plus"></van-icon>
         </van-grid-item>
       </van-grid>
     </div>
@@ -27,7 +27,7 @@
 </template>
 
 <script>
-import { getAllChannels } from '@/api/channel'
+import { getAllChannels, delChannel, addChannel } from '@/api/channel'
 export default {
   props: {
     //  控制屉式菜单 显示隐藏
@@ -73,6 +73,71 @@ export default {
     }
   },
   methods: {
+    // 添加频道
+    async addChannel ({ id, name }) {
+      // 后台需要的参数有 id req循序排序
+      // 包装参数（目的是支持接口调用，支持本地存储）
+      // 接口需要：[{id,seq},...] 排除推荐
+      // 本地需要：id和name即可
+      // 最终数据：[{id,name,seq}....]
+      // 得到排序频道数组
+      // 给每一项后追加一个频道，让自己设置的顺序覆盖掉之前的，得到一个新的myChannels数组包括id，name，seq
+      try {
+        const orderChannels = this.myChannels.map((item, i) => {
+          return {
+            id: item.id,
+            name: item.name,
+            seq: i
+          }
+        })
+        // 追加频道
+        orderChannels.push({ id, name, seq: orderChannels.length })
+        // 后台不用推荐
+        orderChannels.splice(0, 1)
+        // console.log(orderChannels)
+        // 调用添加api
+        await addChannel(orderChannels)
+        // 提示
+        this.$toast.success('添加成功')
+        // 在我的频道中追加一个新的频道
+        this.myChannels.push({
+          id,
+          name,
+          articles: [],
+          upLoading: false,
+          downLoading: false,
+          finished: false,
+          timestamp: Date.now(),
+          // 记录阅读位置
+          scrollTop: 0
+        })
+      } catch (e) {
+        this.$toast.fail('添加失败')
+      }
+    },
+    // 删除频道
+    async  delChannel (index, ChannelId) {
+      try {
+        // 1.调用删除api
+        await delChannel(ChannelId)
+        // 2. 提示
+        this.$toast.success('删除成功')
+        // 3.如果(删除的频道的索引小于或等于当前激活的频道的索引) 让当前激活的频道前移一位
+        if (index <= this.activeIndex) {
+        // 因为这个属于 子传父 所以 用this.$emit()
+          this.$emit('update', this.activeIndex - 1)
+        }
+        // 4.删除myChannels数据中index对应频道
+        // 4.1父传子 使用props来接收 数据特点：只读（单项数据流）
+        // 4.2 当你去修改props中的数据，在不改变其引用这个条件下，是可以去修改数据
+        // 总结：传入的是数据或对象，可以修改值（父组件受影响），但是不能重新赋值
+        this.myChannels.splice(index, 1)
+        // 通知父组件去调用changeChannel函数
+        this.$emit('on-delete')
+      } catch (e) {
+        this.$toast.fail('删除失败')
+      }
+    },
     // 点击进入频道
     enterChannel (index) {
       // 把当前的index传递给父组件

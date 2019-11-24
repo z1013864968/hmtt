@@ -39,3 +39,61 @@ export const getMyChannels = () => {
 export const getAllChannels = () => {
   return request('/app/v1_0/channels', 'get')
 }
+
+/**
+ *删除
+ * @param {int} channelId -频道id
+ */
+export const delChannel = (channelId) => {
+  // 判断是否是登陆状态
+  // 如果登陆 调用接口进行删除
+  // 如果没有登陆 删除本地存储的频道中id对应的哪一项
+  return new Promise(async (resolve, reject) => {
+    try {
+      const { user } = store.state
+      if (user.token) {
+      // 登陆
+        await request(`/app/v1_0/user/channels/${channelId}`, 'delete')
+        resolve()
+      } else {
+      // 没有登陆
+      // 获取本地存储=>获取到的是字符串=>通过findIndex用item.id===channelId来获取当前索引
+      // 用splice(index,1)删除当前频道=》再设置到本地
+        const str = window.localStorage.getItem(KEY)
+        const localStorage = JSON.parse(str)
+        const index = localStorage.findIndex(item => item.id === channelId)
+        localStorage.splice(index, 1)
+        window.localStorage.setItem(KEY, JSON.stringify(localStorage))
+        resolve()
+      }
+    } catch (e) {
+      reject(e)
+    }
+  })
+}
+/**
+ *
+ * @param {Array} orderChannels -排序好的频道数组
+ */
+export const addChannel = (orderChannels) => {
+  return new Promise(async (resolve, reject) => {
+    const { user } = store.state
+    // 如果登陆了 直接调用接口即可
+    if (user.token) {
+      await request('/app/v1_0/user/channels', 'put', {
+        channels: orderChannels
+      })
+      resolve()
+    } else {
+      // 未登录
+      // 获取本地存储
+      const localChannelsJson = window.localStorage.getItem(KEY)
+      const localChannels = JSON.parse(localChannelsJson)
+      // 获取本地存储的id和name
+      const { id, name } = orderChannels[orderChannels.length - 1]
+      localChannels.push({ id, name })
+      window.localStorage.setItem(KEY, JSON.stringify(localChannels))
+      resolve()
+    }
+  })
+}

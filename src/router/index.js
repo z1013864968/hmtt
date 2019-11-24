@@ -11,8 +11,8 @@ const User = () => import('@/views/user/user')
 // const UserChat = () => import('@/views/user/Chat')
 const Login = () => import('@/views/login/index')
 const Search = () => import('@/views/search/index')
-// const SearchResult = () => import('@/views/search/Result')
-// const Article = () => import('@/views/home/Article')
+const SearchResult = () => import('@/views/search/result')
+const Article = () => import('@/views/home/article')
 
 Vue.use(VueRouter)
 
@@ -31,9 +31,9 @@ const routes = [
   // { path: '/user/profile', name: 'user-profile', component: UserProfile },
   // { path: '/user/chat', name: 'user-chat', component: UserChat },
   { path: '/login', name: 'login', component: Login },
-  { path: '/search', name: 'search', component: Search }
-  // { path: '/search/result', name: 'search-result', component: SearchResult }
-  // { path: '/article', name: 'article', component: Article, meta: { keepAlive: true } }
+  { path: '/search', name: 'search', component: Search },
+  { path: '/search/result', name: 'search-result', component: SearchResult },
+  { path: '/article/:id', name: 'article', component: Article, meta: { keepAlive: true } }
 ]
 
 const router = new VueRouter({

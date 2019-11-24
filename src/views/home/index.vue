@@ -16,7 +16,7 @@
               finished-text="没有更多了"
               @load="onLoad"
             >
-              <van-cell v-for="item in activeChannel.articles" :key="item.art_id.toString()">
+              <van-cell :to="{name:'article',params:{id:item.art_id.toString()}}" v-for="item in activeChannel.articles" :key="item.art_id.toString()">
                 <div class="article_item">
                   <h3 class="van-ellipsis">{{item.title}}</h3>
                   <div class="img_box" v-if="item.cover.type===3">
@@ -60,7 +60,11 @@
       @on-report="removeArticle()"
     ></more-action>
     <!-- 编辑操作 -->
-    <channel-edit v-model="showEditChannel" :myChannels="myChannels"  :activeIndex.sync="activeIndex" ></channel-edit>
+    <channel-edit
+    v-model="showEditChannel"
+    :myChannels="myChannels"
+    @on-delete="changeChannel"
+    :activeIndex.sync="activeIndex" ></channel-edit>
   </div>
 </template>
 
