@@ -1,15 +1,19 @@
 <template>
   <div class="comment">
     <!-- 评论列表 -->
-    <van-list @load="getComments()" :immediate-check="false" v-model="loading" :finished="finished" finished-text="没有更多了">
-      <div class="item van-hairline--bottom van-hairline--top" v-for="item in comments" :key="item.com_id.toString()">
-        <van-image
-          round
-          width="1rem"
-          height="1rem"
-          fit="fill"
-          :src="item.aut_photo"
-        />
+    <van-list
+      @load="getComments()"
+      :immediate-check="false"
+      v-model="loading"
+      :finished="finished"
+      finished-text="没有更多了"
+    >
+      <div
+        class="item van-hairline--bottom van-hairline--top"
+        v-for="item in comments"
+        :key="item.com_id.toString()"
+      >
+        <van-image round width="1rem" height="1rem" fit="fill" :src="item.aut_photo" />
         <div class="info">
           <p>
             <span class="name">{{item.aut_name}}</span>
@@ -18,10 +22,10 @@
               <span class="count">{{item.like_count}}</span>
             </span>
           </p>
-          <p>{{item.content}}</p>
+          <p class="a">{{item.content}}</p>
           <p>
             <span class="time">{{item.pubdate|relTime}}</span>&nbsp;
-            <van-tag plain @click="showReply=true">{{item.reply_count}} 回复</van-tag>
+            <van-tag plain @click="openReplyDailog(item.com_id.toString())">{{item.reply_count}} 回复</van-tag>
           </p>
         </div>
       </div>
@@ -30,28 +34,69 @@
     <div class="reply-container van-hairline--top">
       <van-field v-model="value" placeholder="写评论...">
         <van-loading v-if="submiting" slot="button" type="spinner" size="16px"></van-loading>
-        <span class="submit" v-else slot="button">提交</span>
+        <span class="submit" @click="submit()" v-else slot="button">提交</span>
       </van-field>
     </div>
+    <!-- 回复对话框 -->
+    <van-action-sheet @close="commentId=null" v-model="showReply" class="reply_dailog" title="回复评论">
+      <van-list @load="getReplys()" :immediate-check="false" v-model="reply.upLoading" :finished="reply.finished" finished-text="没有更多了">
+        <div class="item van-hairline--bottom van-hairline--top" v-for="item in reply.list" :key="item.com_id.toString()">
+          <van-image
+            round
+            width="1rem"
+            height="1rem"
+            fit="fill"
+            :src="item.aut_photo"
+          />
+          <div class="info">
+            <p>
+              <span class="name">{{item.aut_name}}</span>
+            </p>
+            <p class="a">{{item.content}}</p>
+            <p>
+              <span class="time">{{item.pubdate|relTime}}</span>
+            </p>
+          </div>
+        </div>
+      </van-list>
+    </van-action-sheet>
   </div>
 </template>
 
 <script>
-import { getCommentsOrReplys } from '@/api/article'
+import { getCommentsOrReplys, commentOrReply } from '@/api/article'
 export default {
+  name: 'comment-index',
   data () {
     return {
-    // 提交中...
-      submiting: false,
       // 输入框内容
       value: '',
+      // 提交中转圈圈效果
+      submiting: false,
+      // ---------------------------评论相关数据--------------------------------
       // 评论列表加载中
       loading: false,
       // 评论列表加载完成
       finished: false,
       // 偏移量
       offset: null,
-      comments: []
+      // 评论列表
+      comments: [],
+      // 回复对话框的显示和隐藏
+      showReply: false,
+      // 点击回复按钮 纪录当前评论的ID
+      commentId: null,
+      // --------------------------回复相关列表数据-------------------
+      reply: {
+        // 是否正在加载
+        upLoading: false,
+        // 是否加载完成
+        finished: false,
+        // 偏移量
+        offset: null,
+        // 回复列表
+        list: []
+      }
     }
   },
   // 当前组件是在article组件上使用的,这个组件会被缓存
@@ -67,7 +112,76 @@ export default {
     // 加载频道列表
     this.getComments()
   },
+  created () {
+
+  },
   methods: {
+    // 提交 评论 或者 回复
+    async submit () {
+      try {
+        // 判断是否有内容
+        if (!this.value) return false
+        // 开启 点击评论后的加载中转圈圈效果
+        this.submiting = true
+        // 判断是评论和回复 用评论ID commentId有值表示回复 没值表示评论
+        if (this.commentId) {
+        // 回复
+          const data = await commentOrReply(this.commentId, this.value, this.$route.params.id)
+          // 成功
+          this.$toast.success('回复成功')
+          // 在回复列表顶部追加新的回复
+          this.reply.list.unshift(data.new_obj)
+          // 给当前频道的回复数量加1
+          const currComment = this.comments.find(item => item.com_id.toString() === this.commentId.toString())
+          currComment.reply_count++
+        } else {
+        // 评论
+          const data = await commentOrReply(this.$route.params.id, this.value)
+          // 成功
+          this.$toast.success('评论成功')
+          // 在评论顶部追加新的评论
+          this.comments.unshift(data.new_obj)
+        }
+        // 结束提交中效果
+        this.submiting = false
+        this.value = ''
+      } catch (e) {
+        this.$toast.fail('操作失败')
+        this.submiting = false
+      }
+    },
+    // 打开回复对话框
+    openReplyDailog (comId) {
+      // 打开回复对话框
+      this.showReply = true
+      // 重置
+      this.reply.list = []
+      this.reply.upLoading = true
+      this.reply.finished = false
+      this.reply.offset = null
+      // 纪录当前点击的评论ID
+      this.commentId = comId
+      this.getReplys()
+    },
+    // 获取回复列表
+    async getReplys () {
+      const data = await getCommentsOrReplys({
+        type: 'c',
+        source: this.commentId,
+        offset: this.reply.offset
+      })
+      // 追加数据
+      this.reply.list.push(...data.results)
+      // 结束加载中效果
+      this.reply.upLoading = false
+      // 判断是否有数据=如果有数据就让当前页的最后一个ID等于偏移量
+      if (data.last_id > data.end_id) {
+        this.reply.offset = data.last_id
+      } else {
+        this.reply.finished = true
+      }
+    },
+    // 获取评论列表
     async getComments () {
       const data = await getCommentsOrReplys({
         type: 'a',
@@ -90,6 +204,11 @@ export default {
 </script>
 
 <style lang="less" scoped>
+.van-popup--bottom {
+  &.van-popup--round {
+    border-radius: 0;
+  }
+}
 .comment {
   margin-top: 10px;
   /deep/ .item {
@@ -98,19 +217,19 @@ export default {
     .info {
       flex: 1;
       padding-left: 10px;
-      .name{
-        color:#069;
+      .name {
+        color: #069;
       }
-      .zan{
-        vertical-align:middle;
-        padding-right:2px;
+      .zan {
+        vertical-align: middle;
+        padding-right: 2px;
       }
-      .count{
-        vertical-align:middle;
-        font-size:10px;
+      .count {
+        vertical-align: middle;
+        font-size: 10px;
         color: #666;
       }
-      .time{
+      .time {
         color: #666;
       }
       p {
@@ -135,5 +254,28 @@ export default {
     font-size: 12px;
     color: #3296fa;
   }
+}
+
+.reply_dailog {
+  height: 100%;
+  max-height: 100%;
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  .van-action-sheet__header {
+    background: #3296fa;
+    color: #fff;
+    .van-icon-close {
+      color: #fff;
+    }
+  }
+  .van-action-sheet__content{
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 10px 44px;
+  }
+}
+.a{
+  word-break: break-all;
 }
 </style>

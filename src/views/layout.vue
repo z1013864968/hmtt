@@ -1,9 +1,9 @@
 <template>
   <div class='container'>
     <!-- 导航栏 -->
-    <van-nav-bar fixed title="黑马头条" right-text="搜索" @click-right="$router.push('/search')"/>
+    <van-nav-bar v-if="this.$route.path!='/user'" fixed title="黑马头条" right-text="搜索" @click-right="$router.push('/search')"/>
     <!-- 内容容器 -->
-    <div class="my-wrapper" >
+    <div class="my-wrapper" :class="{noTop:this.$route.path==='/user'}">
       <!-- 二级路由组件显示位置 -->
       <keep-alive >
       <router-view v-if="$route.meta.keepAlive"></router-view>

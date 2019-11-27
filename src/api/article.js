@@ -125,3 +125,17 @@ export const getCommentsOrReplys = ({ type, source, offset, limit = 10 }) => {
     type, source, offset, limit
   })
 }
+
+/**
+ *提交评论或回复
+ * @param {String} target -当你是评论操作时是：文章ID  当你是回复操作时是：评论ID
+ * @param {*} content -内容
+ * @param {*} artId -文章ID（当你是回复操作时）
+ */
+export const commentOrReply = (target, content, artId = null) => {
+  return request('/app/v1_0/comments', 'post', {
+    target,
+    content,
+    art_id: artId
+  })
+}

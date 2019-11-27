@@ -54,7 +54,6 @@ export default {
         // 通知父组件删除对应的文章
         this.$emit('on-report')
       } catch (e) {
-        console.dir(e)
         if (e.response && e.response.status === 409) {
           return this.$toast({ type: 'success', message: '已经举报' })
         }
